@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EMI Tracker</title>
+<style>
+/* ---------- Theme tokens (light default, dark via system or manual toggle) ---------- */
+:root{
+  --bg:#f2f2f7; --surface:#ffffff; --text:#1c1c1e; --muted:#6e6e73;
+  --primary:#0071e3; --primary-text:#ffffff; --success:#248a3d; --success-bg:#e3f5e9;
+  --warn:#b45309; --warn-bg:#fdecd8; --border:#e2e2e7; --radius:16px;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  box-sizing:border-box;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#000; --surface:#1c1c1e; --text:#f2f2f7; --muted:#98989d;
+    --primary:#0a84ff; --success:#30d158; --success-bg:#0f2b18;
+    --warn:#ff9f0a; --warn-bg:#332203; --border:#38383a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#000; --surface:#1c1c1e; --text:#f2f2f7; --muted:#98989d;
+  --primary:#0a84ff; --success:#30d158; --success-bg:#0f2b18;
+  --warn:#ff9f0a; --warn-bg:#332203; --border:#38383a;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; -webkit-font-smoothing:antialiased;}
+.wrap{max-width:760px; margin:0 auto; padding:16px 16px 100px;}
+header{position:sticky; top:0; top:env(safe-area-inset-top,0px); background:var(--bg); z-index:5; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); gap:8px;}
+h1{font-size:18px; margin:0; white-space:nowrap;}
+.hdr-btns{display:flex; gap:8px;}
+button{font-family:inherit; cursor:pointer; border:none;}
+.icon-btn{background:var(--surface); border:1px solid var(--border); width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:var(--text); flex-shrink:0;}
+.icon-btn svg{width:18px; height:18px;}
+.card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin:16px 16px 0;}
+.card h2{font-size:14px; margin:0 0 12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.03em;}
+.field{margin-bottom:12px;}
+.field label{display:block; font-size:13px; color:var(--muted); margin-bottom:6px;}
+.field input{width:100%; padding:12px; border:1px solid var(--border); border-radius:10px; background:var(--bg); color:var(--text); font-size:16px;}
+.primary-btn{width:100%; padding:13px; border-radius:12px; background:var(--primary); color:var(--primary-text); font-size:15px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:8px;}
+.primary-btn svg{width:18px; height:18px;}
+.manual-row{display:flex; gap:6px; margin-bottom:8px;}
+.manual-row input{padding:9px; border:1px solid var(--border); border-radius:8px; background:var(--bg); color:var(--text); font-size:13px; min-width:0;}
+.manual-row input[type="datetime-local"]{flex:1.3;}
+.manual-row input[type="number"]{flex:1;}
+.manual-row input[type="text"]{flex:1.2;}
+.manual-row .m-remove{flex:0 0 auto; width:34px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--muted); font-size:14px;}
+.add-manual-btn{width:100%; padding:9px; border-radius:9px; background:var(--bg); border:1px dashed var(--border); color:var(--primary); font-size:13px; font-weight:600;}
+.tx-card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px; margin:16px 16px 0;}
+.tx-top .title{font-size:16px; font-weight:700;}
+.tx-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.progress{height:6px; background:var(--border); border-radius:4px; overflow:hidden; margin:10px 0;}
+.progress-fill{height:100%; background:var(--success); border-radius:4px;}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;}
+.stat{background:var(--bg); border-radius:10px; padding:10px;}
+.stat .v{font-size:15px; font-weight:700;}
+.stat .l{font-size:11px; color:var(--muted); margin-top:2px;}
+.stat .breakdown{font-size:10px; color:var(--muted); margin-bottom:3px;}
+.stat-success{background:var(--success-bg) !important;}
+.stat-success .v{color:var(--success);}
+.stat-success .l{color:var(--success);}
+.stat-warn{background:var(--warn-bg) !important;}
+.stat-warn .v{color:var(--warn);}
+.stat-warn .l{color:var(--warn);}
+.pay-btn{margin-top:12px; width:100%; padding:11px; border-radius:10px; background:var(--success-bg); color:var(--success); font-weight:600; font-size:14px; display:flex; align-items:center; justify-content:center; gap:6px;}
+.pay-btn svg{width:16px; height:16px;}
+.hist{margin-top:12px; border-top:1px solid var(--border); padding-top:10px;}
+.hist-title{font-size:12px; font-weight:600; color:var(--muted); display:flex; align-items:center; gap:6px; margin-bottom:4px;}
+.hist-title svg{width:13px; height:13px; flex-shrink:0;}
+.hist-empty{font-size:12px; color:var(--muted); padding:6px 0;}
+.hist-row{display:flex; justify-content:space-between; align-items:flex-start; padding:8px 0; border-bottom:1px dashed var(--border); font-size:12px; gap:8px;}
+.hist-row:last-child{border-bottom:none;}
+.hist-row .amt{font-weight:700; white-space:nowrap;}
+.hist-row .meta{color:var(--muted);}
+.hist-row .note{color:var(--text); margin-top:2px; font-style:italic;}
+.empty{text-align:center; color:var(--muted); padding:40px 20px; font-size:14px;}
+.note{font-size:12px; color:var(--muted); text-align:center; margin:16px 16px 0;}
+.modal-overlay{display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:50; align-items:center; justify-content:center; padding:16px;}
+.modal-overlay.show{display:flex;}
+.modal-box{background:var(--surface); border-radius:16px; padding:20px; width:100%; max-width:380px;}
+.modal-box h3{margin:0 0 14px; font-size:16px;}
+.modal-actions{display:flex; gap:8px;}
+.modal-actions .cancel-btn{background:var(--bg); color:var(--muted); border:1px solid var(--border);}
+</style>
+</head>
+<body>
+<header>
+  <h1>💳 EMI Tracker</h1>
+  <div class="hdr-btns">
+    <button class="icon-btn" id="exportBtn" aria-label="Export encrypted backup" title="Export encrypted backup">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>
+    </button>
+    <button class="icon-btn" id="importBtn" aria-label="Import encrypted backup" title="Import encrypted backup">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3M7 8l5-5 5 5M4 21h16"/></svg>
+    </button>
+    <input type="file" id="fileInput" accept=".json" style="display:none">
+    <button class="icon-btn" id="clearBtn" aria-label="Clear all stored browser data" title="Clear all stored browser data (local storage, session storage, cookies)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"/></svg>
+    </button>
+    <button class="icon-btn" id="themeBtn" aria-label="Toggle theme"></button>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- New transaction form -->
+  <div class="card">
+    <h2>Add New Purchase</h2>
+    <div class="field"><label>Title</label><input type="text" id="inTitle" placeholder="e.g. RTX 4080 GPU"></div>
+    <div class="field"><label>Purchase Date (optional — the day you actually bought it; defaults to today)</label><input type="date" id="inPurchaseDate"></div>
+    <div class="field"><label>Base Price (৳)</label><input type="number" id="inBase" placeholder="50000" inputmode="decimal"></div>
+    <div class="field"><label>Interest (%)</label><input type="number" id="inInterest" placeholder="18" inputmode="decimal"></div>
+    <div class="field"><label>VAT (%) — charged once on base price</label><input type="number" id="inVat" placeholder="0" inputmode="decimal"></div>
+    <div class="field">
+      <label>Already Paid Payments (optional — add each past payment separately, with its own date/time and amount)</label>
+      <div id="manualList"></div>
+      <button type="button" class="add-manual-btn" id="addManualBtn">+ Add Payment</button>
+    </div>
+    <div class="field"><label>Number of Installments (months)</label><input type="number" id="inMonths" placeholder="18" inputmode="numeric"></div>
+    <button class="primary-btn" id="addTxBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      Add
+    </button>
+  </div>
+
+  <div id="txList"></div>
+  <p class="note">All data stays only on this device. Payment records are permanent and cannot be edited or deleted. Use Export to save an encrypted backup file, and Import to load it back (here or on another device).</p>
+</div>
+
+<!-- Record Payment modal: one click opens it, prefilled automatically; user may edit anything before confirming -->
+<div class="modal-overlay" id="payModalOverlay">
+  <div class="modal-box">
+    <h3>Record Payment</h3>
+    <div class="field"><label>Amount (৳)</label><input type="number" id="payAmount"></div>
+    <div class="field"><label>Date & Time</label><input type="datetime-local" id="payDate"></div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="payNote" placeholder="e.g. Paid via bKash"></div>
+    <div class="modal-actions">
+      <button class="primary-btn" id="payConfirmBtn">Confirm</button>
+      <button class="primary-btn cancel-btn" id="payCancelBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== ICONS ===================== */
+const ICON_SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+const ICON_MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>';
+const ICON_WALLET='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v3M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-6a1 1 0 0 0-1-1h-4a2 2 0 1 0 0 4"/></svg>';
+const ICON_LOCK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
+
+/* ===================== THEME ===================== */
+const themeBtn = document.getElementById('themeBtn');
+function applyTheme(){
+  const saved = localStorage.getItem('emi-theme');
+  if(saved) document.documentElement.setAttribute('data-theme', saved);
+  const isDark = saved ? saved==='dark' : (typeof matchMedia==='function' && matchMedia('(prefers-color-scheme: dark)').matches);
+  themeBtn.innerHTML = isDark ? ICON_SUN : ICON_MOON;
+}
+themeBtn.onclick = ()=>{
+  const cur = document.documentElement.getAttribute('data-theme') || ((typeof matchMedia==='function' && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark':'light');
+  const next = cur==='dark' ? 'light':'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('emi-theme', next);
+  applyTheme();
+};
+applyTheme();
+
+/* ===================== STATE (single device, local only) ===================== */
+let state = { transactions: [], payments: [] };
+function loadLocal(){
+  try{ const raw = localStorage.getItem('emi-data'); if(raw) state = JSON.parse(raw); }catch(e){}
+}
+function saveLocal(){ localStorage.setItem('emi-data', JSON.stringify(state)); }
+// Fill in defaults for records saved by an earlier version of this app
+// (e.g. before Title/VAT/note fields existed), so old data never breaks rendering.
+function migrateState(){
+  let changed = false;
+  state.transactions.forEach(tx=>{
+    if(tx.title === undefined){ tx.title = 'Untitled Purchase'; changed = true; }
+    if(tx.vatPercent === undefined){ tx.vatPercent = 0; changed = true; }
+    if(tx.vatAmount === undefined){ tx.vatAmount = 0; changed = true; }
+    if(tx.purchaseDate === undefined){ tx.purchaseDate = tx.createdAt.slice(0,10); changed = true; }
+  });
+  state.payments.forEach(p=>{
+    if(p.note === undefined){ p.note = ''; changed = true; }
+  });
+  if(changed) saveLocal();
+}
+loadLocal();
+migrateState();
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+
+/* ===================== DATE HELPERS ===================== */
+// Full elapsed calendar months between two dates (used for "remaining months")
+function monthsBetween(d1, d2){
+  let m = (d2.getFullYear()-d1.getFullYear())*12 + (d2.getMonth()-d1.getMonth());
+  if(d2.getDate() < d1.getDate()) m--;
+  return Math.max(0, m);
+}
+// Fixed 3-letter month abbreviations (the "MMM" format). We build this ourselves
+// instead of using the locale's own "short" month name, because ICU's own short
+// form renders September as "Sept" (4 letters) — inconsistent with every other
+// month, which are all exactly 3 letters (Jan, Feb, Mar...).
+const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fmtDate(d){ return `${d.getDate()} ${MONTH_ABBR[d.getMonth()]} ${d.getFullYear()}`; }
+function fmtDateTime(iso){
+  const d = new Date(iso);
+  return fmtDate(d) + ' · ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+function taka(n){ return '৳' + Math.round(n).toLocaleString('en-IN'); }
+function sanitizeForFilename(str){
+  return (str||'').trim().replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60) || 'EMI-Backup';
+}
+// "YYYY-MM-DDTHH:MM" in LOCAL time, for pre-filling datetime-local inputs
+function toLocalInputValue(d){
+  const pad = n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/* ===================== MANUAL "ALREADY PAID" ENTRIES (before a transaction is created) ===================== */
+// Lets the user log MULTIPLE past payments, each with its own date/time, amount
+// and note — the same detail every normal payment record stores.
+let manualEntries = [];
+function renderManualList(){
+  const c = document.getElementById('manualList');
+  c.innerHTML = manualEntries.map((e,i)=>`
+    <div class="manual-row">
+      <input type="datetime-local" value="${e.date}" onchange="updateManual(${i},'date',this.value)">
+      <input type="number" placeholder="Amount (৳)" value="${e.amount}" oninput="updateManual(${i},'amount',this.value)">
+      <input type="text" placeholder="Note (optional)" value="${e.note}" oninput="updateManual(${i},'note',this.value)">
+      <button type="button" class="m-remove" onclick="removeManual(${i})">✕</button>
+    </div>`).join('');
+}
+function updateManual(i,key,val){ manualEntries[i][key]=val; }
+function removeManual(i){ manualEntries.splice(i,1); renderManualList(); }
+window.updateManual = updateManual;
+window.removeManual = removeManual;
+document.getElementById('addManualBtn').onclick = ()=>{
+  manualEntries.push({ date:'', amount:'', note:'' });
+  renderManualList();
+};
+renderManualList();
+
+/* ===================== CLEAR ALL BROWSER-STORED DATA ===================== */
+// Wipes local storage, session storage and cookies for this page. This is
+// permanent and separate from the encrypted backup file — export first if needed.
+document.getElementById('clearBtn').onclick = ()=>{
+  if(!confirm('This will permanently erase everything this app has stored in this browser (local storage, session storage, cookies) — including every purchase and payment record. Export a backup first if you want to keep it. Continue?')) return;
+  try{ localStorage.clear(); }catch(e){}
+  try{ sessionStorage.clear(); }catch(e){}
+  try{
+    document.cookie.split(';').forEach(c=>{
+      const eq = c.indexOf('=');
+      const name = (eq>-1 ? c.substr(0,eq) : c).trim();
+      if(name) document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    });
+  }catch(e){}
+  state = { transactions: [], payments: [] };
+  render();
+  alert('All stored data has been cleared.');
+};
+
+/* ===================== ADD TRANSACTION ===================== */
+document.getElementById('addTxBtn').onclick = ()=>{
+  try{
+    const title = document.getElementById('inTitle').value.trim();
+    const purchaseDateInput = document.getElementById('inPurchaseDate').value;
+    const base = parseFloat(document.getElementById('inBase').value);
+    const interest = parseFloat(document.getElementById('inInterest').value);
+    const vatPercent = parseFloat(document.getElementById('inVat').value) || 0;
+    const months = parseInt(document.getElementById('inMonths').value);
+    if(!title || !base || !months || isNaN(interest)){ alert('Please fill in Title, Base Price, Interest and Months correctly'); return; }
+
+    const createdAt = new Date().toISOString();
+    // The day it was actually bought — used to calculate Remaining Months.
+    // Defaults to today if left blank.
+    const purchaseDate = purchaseDateInput || createdAt.slice(0,10);
+    const txId = uid();
+    // VAT amount is calculated ONCE, right now, on the base price only.
+    // It is stored as a fixed number below and is never recalculated again,
+    // even though interest or other numbers might otherwise change over time.
+    const vatAmount = base * (vatPercent/100);
+
+    state.transactions.unshift({
+      id: txId, title: title, basePrice: base, interestPercent: interest,
+      vatPercent: vatPercent, vatAmount: vatAmount, months: months,
+      createdAt: createdAt, purchaseDate: purchaseDate
+    });
+
+    // Log every manually entered "already paid" payment, each with its own date/time.
+    manualEntries.forEach(entry=>{
+      const amt = parseFloat(entry.amount);
+      if(!amt || amt<=0) return;
+      const paidAt = entry.date ? new Date(entry.date).toISOString() : createdAt;
+      state.payments.push({ id: uid(), transactionId: txId, amount: amt, paidAt: paidAt, note: (entry.note||'').trim() || 'Already paid before adding this record' });
+    });
+
+    saveLocal();
+    document.getElementById('inTitle').value='';
+    document.getElementById('inPurchaseDate').value='';
+    document.getElementById('inBase').value='';
+    document.getElementById('inInterest').value='';
+    document.getElementById('inVat').value='';
+    document.getElementById('inMonths').value='';
+    manualEntries = [];
+    renderManualList();
+    render();
+  }catch(err){
+    console.error(err);
+    alert('Something went wrong while adding: ' + err.message);
+  }
+};
+
+/* ===================== RECORD PAYMENT (one click, prefilled automatically, editable manually) ===================== */
+let payModalTxId = null;
+function openPayModal(txId, defaultAmount){
+  payModalTxId = txId;
+  document.getElementById('payAmount').value = defaultAmount.toFixed(2);
+  document.getElementById('payDate').value = toLocalInputValue(new Date());
+  document.getElementById('payNote').value = '';
+  document.getElementById('payModalOverlay').classList.add('show');
+}
+window.openPayModal = openPayModal;
+document.getElementById('payCancelBtn').onclick = ()=> document.getElementById('payModalOverlay').classList.remove('show');
+document.getElementById('payConfirmBtn').onclick = ()=>{
+  try{
+    const amt = parseFloat(document.getElementById('payAmount').value);
+    if(!amt || amt<=0){ alert('Enter a valid amount'); return; }
+    const dateVal = document.getElementById('payDate').value;
+    const paidAt = dateVal ? new Date(dateVal).toISOString() : new Date().toISOString();
+    const note = document.getElementById('payNote').value.trim();
+    // Permanent — never edited or deleted once recorded.
+    state.payments.push({ id: uid(), transactionId: payModalTxId, amount: amt, paidAt: paidAt, note: note });
+    saveLocal();
+    document.getElementById('payModalOverlay').classList.remove('show');
+    render();
+  }catch(err){
+    console.error(err);
+    alert('Something went wrong while recording the payment: ' + err.message);
+  }
+};
+
+/* ===================== ENCRYPTED BACKUP (Export / Import) ===================== */
+// AES-GCM with a password-derived key (PBKDF2) — fully client-side, no server involved
+function b64(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))); }
+function unb64(str){ return Uint8Array.from(atob(str), c=>c.charCodeAt(0)); }
+async function deriveKey(password, saltBytes){
+  const keyMaterial = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2', salt: saltBytes, iterations:150000, hash:'SHA-256'}, keyMaterial, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+}
+// Works whether this page is opened inside Claude.ai (has a `downloads` capability)
+// or hosted as a plain file/website anywhere else (falls back to a normal browser download).
+async function getDownloadsCapability(){
+  try{
+    if(typeof claude !== 'undefined' && claude && typeof claude.use === 'function'){
+      return await claude.use('downloads');
+    }
+  }catch(e){ /* not running inside Claude.ai — that's fine, use the fallback */ }
+  return null;
+}
+
+document.getElementById('exportBtn').onclick = async ()=>{
+  const password = prompt('Set a password to encrypt your backup file:');
+  if(!password) return;
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(password, salt);
+  // Export EVERYTHING stored: every transaction's full detail (title, base price,
+  // interest %, VAT % and its one-time fixed amount, months, created date) and
+  // every payment record's full detail (amount, date+time, note).
+  const cipher = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(JSON.stringify(state)));
+  const payload = JSON.stringify({ v:1, salt:b64(salt), iv:b64(iv), data:b64(cipher) });
+
+  // Filename = the title of the (most recent) instance + a short unique code, so
+  // repeated exports never silently overwrite each other.
+  const baseTitle = state.transactions.length ? state.transactions[0].title : 'EMI-Backup';
+  const filename = `${sanitizeForFilename(baseTitle)}-${uid().slice(0,6)}.json`;
+
+  const downloads = await getDownloadsCapability();
+  if(downloads){
+    try{ await downloads.save({ filename, data: payload }); }
+    catch(e){ alert('Could not save the file (' + (e && e.code ? e.code : 'unknown error') + ')'); }
+  } else {
+    const blob = new Blob([payload], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+};
+
+document.getElementById('importBtn').onclick = ()=> document.getElementById('fileInput').click();
+document.getElementById('fileInput').onchange = async (e)=>{
+  const file = e.target.files[0]; e.target.value='';
+  if(!file) return;
+  let payload;
+  try{ payload = JSON.parse(await file.text()); }catch(err){ alert('This does not look like a valid backup file'); return; }
+  const password = prompt('Enter the password for this backup file:');
+  if(!password) return;
+  try{
+    const key = await deriveKey(password, unb64(payload.salt));
+    const plainBuf = await crypto.subtle.decrypt({name:'AES-GCM', iv: unb64(payload.iv)}, key, unb64(payload.data));
+    const restored = JSON.parse(new TextDecoder().decode(plainBuf));
+    if(confirm('Replace all current data on this device with this backup?')){
+      state = restored; saveLocal(); render();
+    }
+  }catch(err){ alert('Wrong password, or the file is corrupted'); }
+};
+
+/* ===================== RENDER ===================== */
+function render(){
+  try{
+    const list = document.getElementById('txList');
+    if(!state.transactions.length){
+      list.innerHTML = '<div class="empty">No purchases added yet.</div>';
+      return;
+    }
+    list.innerHTML = state.transactions.map(tx=>{
+      const now = new Date();
+      const purchased = new Date(tx.purchaseDate);
+      const totalInterest = tx.basePrice * (tx.interestPercent/100);
+      // VAT is a one-time charge only: it is never part of the monthly EMI or any
+      // other ongoing calculation — only added once into Total Payable, below.
+      const emi = (tx.basePrice + totalInterest) / tx.months;
+      const totalPayable = tx.basePrice + totalInterest + (tx.vatAmount||0);
+      // Remaining months is based on the Purchase Date you set, not today's app-open date.
+      const elapsed = monthsBetween(purchased, now);
+      const remMonths = tx.months - elapsed;
+      const txPayments = state.payments.filter(p=>p.transactionId===tx.id).sort((a,b)=> new Date(a.paidAt)-new Date(b.paidAt));
+      const paymentsCount = txPayments.length;
+      const paidAmount = txPayments.reduce((s,p)=>s+p.amount,0);
+      const remAmount = Math.max(0, totalPayable - paidAmount);
+      const pct = Math.min(100, Math.round((paidAmount/totalPayable)*100));
+      const isPaidOff = remAmount < 1; // fully paid (rounding-safe)
+      const isOverdue = !isPaidOff && remMonths <= 0; // schedule passed, still owing
+
+      // Payment History is ALWAYS shown (not hidden behind a click), oldest first.
+      const historyRows = txPayments.length ? txPayments.map(p=>`
+        <div class="hist-row">
+          <div>
+            <div class="meta">${fmtDateTime(p.paidAt)}</div>
+            ${p.note ? `<div class="note">${p.note.replace(/</g,'&lt;')}</div>` : ''}
+          </div>
+          <div class="amt">${taka(p.amount)}</div>
+        </div>`).join('') : '<div class="hist-empty">No payments recorded yet.</div>';
+      const historyBlock = `
+        <div class="hist">
+          <div class="hist-title">${ICON_LOCK} Payment History (${paymentsCount}) — permanent record</div>
+          ${historyRows}
+        </div>`;
+
+      const payBtn = remAmount>0 ? `<button class="pay-btn" onclick="openPayModal('${tx.id}', ${emi})">${ICON_WALLET} Record Payment</button>` : '';
+
+      // Total Payable breakdown line, shown only when VAT applies.
+      const totalBreakdown = tx.vatPercent ? `<div class="breakdown">(${taka(tx.basePrice+totalInterest)} + VAT ${taka(tx.vatAmount)})</div>` : '';
+
+      // Remaining Months stat: green check + congrats if paid off (even ahead of
+      // schedule), amber warning if the schedule has passed but it's not paid off yet.
+      let remStat;
+      if(isPaidOff){
+        remStat = `<div class="stat stat-success"><div class="v">✅ Paid Off</div><div class="l">🎉 Congratulations!${remMonths>0 ? ' Finished early.' : ''}</div></div>`;
+      } else if(isOverdue){
+        remStat = `<div class="stat stat-warn"><div class="v">⚠️ ${Math.abs(remMonths)} mo overdue</div><div class="l">Schedule exceeded</div></div>`;
+      } else {
+        remStat = `<div class="stat"><div class="v">${remMonths} months</div><div class="l">Remaining Months</div></div>`;
+      }
+
+      return `
+        <div class="tx-card">
+          <div class="tx-top">
+            <div class="title">${tx.title.replace(/</g,'&lt;')}</div>
+            <div class="tx-sub">${taka(tx.basePrice)} base · Interest ${tx.interestPercent}%${tx.vatPercent ? ' · VAT '+tx.vatPercent+'%' : ''} · ${tx.months} months · Purchased ${fmtDate(purchased)}</div>
+          </div>
+          <div class="progress"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <div class="grid2">
+            <div class="stat"><div class="v">${taka(emi)}</div><div class="l">Monthly EMI</div></div>
+            <div class="stat">${totalBreakdown}<div class="v">${taka(totalPayable)}</div><div class="l">Total Payable</div></div>
+            <div class="stat"><div class="v">${taka(remAmount)}</div><div class="l">Remaining Amount</div></div>
+            ${remStat}
+            <div class="stat"><div class="v">${paymentsCount}</div><div class="l">Payments Made</div></div>
+            ${tx.vatPercent ? `<div class="stat"><div class="v">${taka(tx.vatAmount)}</div><div class="l">VAT Amount (one-time, not in EMI)</div></div>` : ''}
+          </div>
+          ${historyBlock}
+          ${payBtn}
+        </div>`;
+    }).join('');
+  }catch(err){
+    console.error(err);
+    alert('Something went wrong while displaying the list: ' + err.message);
+  }
+}
+render();
+</script>
+</body>
+</html>
